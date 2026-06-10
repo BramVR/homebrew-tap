@@ -1,0 +1,71 @@
+name: Update Formula
+run-name: Update ${{ inputs.formula }} for ${{ inputs.tag }}${{ inputs.request_id && format(' ({0})', inputs.request_id) || '' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      formula:
+        description: "Formula name"
+        required: true
+        type: string
+      tag:
+        description: "Release tag to update formula for"
+        required: true
+        type: string
+      repository:
+        description: "Source repository, e.g. BramVR/gohealthcli"
+        required: true
+        type: string
+      description:
+        description: "Formula description"
+        required: true
+        type: string
+      artifact_template:
+        description: "Release asset template, e.g. {formula}_{version}_{target}.tar.gz"
+        required: true
+        type: string
+      request_id:
+        description: "Caller-generated ID used to identify this workflow run"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-formula:
+    runs-on: macos-15
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update formula
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 .github/scripts/update_gohealthcli_formula.py \
+            --formula "${{ inputs.formula }}" \
+            --tag "${{ inputs.tag }}" \
+            --repository "${{ inputs.repository }}" \
+            --description "${{ inputs.description }}" \
+            --artifact-template "${{ inputs.artifact_template }}"
+
+      - name: Commit and push
+        run: |
+          FORMULA="${{ inputs.formula }}"
+          TAG="${{ inputs.tag }}"
+
+          git add "Formula/${FORMULA}.rb"
+
+          if git diff --cached --quiet; then
+            echo "Formula/${FORMULA}.rb already up to date"
+            exit 0
+          fi
+
+          git commit -m "${FORMULA}: update formula for ${TAG}"
+          git push
