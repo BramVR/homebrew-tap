@@ -92,7 +92,7 @@ def render_formula(
 
   test do
     assert_match version.to_s, shell_output("#{{bin}}/gohealthcli --version")
-    assert_match "Create local config", shell_output("#{{bin}}/gohealthcli help init 2>&1")
+    assert_match "Initialise a fresh", shell_output("#{{bin}}/gohealthcli help init 2>&1")
   end
 end
 '''
